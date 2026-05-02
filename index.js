@@ -17,19 +17,43 @@ const client = new Client({
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-client.once('ready', () => {
-    console.log(`Syntax está online como ${client.user.tag}`);
+// Saca el ID del canal de las variables de Railway
+const CANAL_PERMITIDO = process.env.CHANNEL_ID;
 
-    // Se pone DND apenas prende y ya
+async function mandarLog(mensaje) {
+    if (!CANAL_PERMITIDO) return;
+    try {
+        const canal = await client.channels.fetch(CANAL_PERMITIDO);
+        if (canal && canal.isTextBased()) {
+            await canal.send(`💀 **Log Syntax:** ${mensaje}`);
+        }
+    } catch (e) {
+        console.error("No pude mandar log:", e.message);
+    }
+}
+
+client.once('ready', () => {
+    console.log(`✅ Syntax online como ${client.user.tag}`);
     client.user.setPresence({
-        activities: [{ name: 'No jodan', type: ActivityType.Custom }],
+        activities: [{ name: 'Solo hablo acá', type: ActivityType.Custom }],
         status: 'dnd'
     });
-    console.log('Syntax en DND 🔴');
+
+    if (!CANAL_PERMITIDO) {
+        console.error("❌ Falta CHANNEL_ID en las variables de Railway");
+    } else {
+        mandarLog("Prendí en DND pa 🔴");
+    }
 });
 
 client.on('messageCreate', async message => {
+    // 1. Ignora bots
     if (message.author.bot) return;
+
+    // 2. SOLO RESPONDE EN EL CANAL PERMITIDO
+    if (!CANAL_PERMITIDO || message.channel.id!== CANAL_PERMITIDO) return;
+
+    // 3. Ignora mensajes vacíos o comandos
     if (!message.content.trim()) return;
     if (message.content.startsWith('/')) return;
 
@@ -46,12 +70,23 @@ client.on('messageCreate', async message => {
             timeout: 8000
         });
 
-        const texto = respuesta.choices[0]?.message?.content || "Se me bugueó pa";
+        const texto = respuesta.choices[0]?.message?.content;
+        if (!texto) throw new Error("Groq devolvió vacío");
+
         message.reply(texto);
 
     } catch (error) {
-        console.error("Error Groq:", error.message);
-        message.reply("Groq se murió boludo 💀");
+        console.error("Error Groq:", error);
+
+        let errorMsg = "Se rompió algo pa 💀";
+        if (error.status === 429) errorMsg = "Rate limit 429: Esperá 1 min";
+        else if (error.status === 503 || error.status === 500) errorMsg = "Groq explotó 503/500";
+        else if (error.status === 401) errorMsg = "API key de Groq mal puesta";
+        else if (error.message.includes('timeout')) errorMsg = "Timeout: Groq tardó mucho";
+        else errorMsg = `Error: ${error.message}`;
+
+        message.reply(errorMsg);
+        mandarLog(`User ${message.author.tag} causó: ${errorMsg}`);
     }
 });
 
