@@ -67,7 +67,7 @@ client.on('messageCreate', async message => {
             ],
             model: "llama3-8b-8192",
             max_tokens: 200,
-            timeout: 8000
+            timeout: 15000
         });
 
         const texto = respuesta.choices[0]?.message?.content;
