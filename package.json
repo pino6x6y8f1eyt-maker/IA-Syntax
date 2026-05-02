@@ -1,17 +1,12 @@
 {
-  "name": "syntax-bot",
+  "name": "mi-bot-santix",
   "version": "1.0.0",
-  "description": "Syntax Bot - Bot de Discord con IA usando Groq",
   "main": "index.js",
-  "author": "Santix © 2026",
-  "license": "UNLICENSED",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
+    "start": "node index.js"
   },
   "dependencies": {
-    "discord.js": "^14.14.1",
-    "dotenv": "^16.4.5",
-    "groq-sdk": "^0.5.0"
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
   }
 }
