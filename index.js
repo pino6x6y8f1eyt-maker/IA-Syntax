@@ -1,93 +1,90 @@
-/**
- * © 2026 Santix. Todos los derechos reservados.
- * Syntax Bot - Código fuente y marca no registrada
- */
-
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ChannelType } = require('discord.js');
 require('dotenv').config();
-const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
-const { Groq } = require('groq-sdk');
 
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID; // ← Necesitas agregar esto en Railway
 
-// Saca el ID del canal de las variables de Railway
-const CANAL_PERMITIDO = process.env.CHANNEL_ID;
+// REGISTRAR COMANDOS SLASH
+const commands = [
+  new SlashCommandBuilder()
+    .setName('mensaje')
+    .setDescription('Manda un mensaje por mí pa 👑')
+    .addStringOption(option =>
+      option.setName('texto')
+        .setDescription('Qué quieres que diga Santix')
+        .setRequired(true))
+    .addChannelOption(option =>
+      option.setName('canal')
+        .setDescription('A qué canal lo mando')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(true))
+    .toJSON()
+];
 
-async function mandarLog(mensaje) {
-    if (!CANAL_PERMITIDO) return;
-    try {
-        const canal = await client.channels.fetch(CANAL_PERMITIDO);
-        if (canal && canal.isTextBased()) {
-            await canal.send(`💀 **Log Syntax:** ${mensaje}`);
-        }
-    } catch (e) {
-        console.error("No pude mandar log:", e.message);
-    }
-}
+const rest = new REST({ version: '10' }).setToken(TOKEN);
 
-client.once('ready', () => {
-    console.log(`✅ Syntax online como ${client.user.tag}`);
-    client.user.setPresence({
-        activities: [{ name: 'Solo hablo acá', type: ActivityType.Custom }],
-        status: 'dnd'
-    });
+client.once('ready', async () => {
+  console.log(`Bot online! Logueado como ${client.user.tag}`);
+  
+  // REGISTRAR SLASH COMMANDS
+  try {
+    console.log('Registrando comandos slash...');
+    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+    console.log('Comando /mensaje registrado pa 👑');
+  } catch (error) {
+    console.error('Error registrando comandos:', error);
+  }
 
-    if (!CANAL_PERMITIDO) {
-        console.error("❌ Falta CHANNEL_ID en las variables de Railway");
-    } else {
-        mandarLog("Prendí en DND pa 🔴");
-    }
+  // PONER EL PUNTO ROJO DND
+  client.user.setPresence({
+    activities: [{ name: '🥰🥰 Amo a mi papa el santix 🥰🥰 no me pagan ): 💵💵', type: 0 }],
+    status: 'dnd'
+  });
 });
 
-client.on('messageCreate', async message => {
-    // 1. Ignora bots
-    if (message.author.bot) return;
+// MANEJAR SLASH COMMANDS
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand()) return;
 
-    // 2. SOLO RESPONDE EN EL CANAL PERMITIDO
-    if (!CANAL_PERMITIDO || message.channel.id!== CANAL_PERMITIDO) return;
-
-    // 3. Ignora mensajes vacíos o comandos
-    if (!message.content.trim()) return;
-    if (message.content.startsWith('/')) return;
-
-    message.channel.sendTyping();
+  if (interaction.commandName === 'mensaje') {
+    const texto = interaction.options.getString('texto');
+    const canal = interaction.options.getChannel('canal');
 
     try {
-        const respuesta = await groq.chat.completions.create({
-            messages: [
-                { role: "system", content: "Sos Syntax, un bot argentino. Respondés corto, piola y con humor." },
-                { role: "user", content: message.content }
-            ],
-            model: "llama3-8b-8192",
-            max_tokens: 200,
-            timeout: 15000
-        });
-
-        const texto = respuesta.choices[0]?.message?.content;
-        if (!texto) throw new Error("Groq devolvió vacío");
-
-        message.reply(texto);
-
+      await canal.send(texto);
+      await interaction.reply({ content: `Ya mandé tu mensaje a ${canal} pa 👑`, ephemeral: true });
     } catch (error) {
-        console.error("Error Groq:", error);
-
-        let errorMsg = "Se rompió algo pa 💀";
-        if (error.status === 429) errorMsg = "Rate limit 429: Esperá 1 min";
-        else if (error.status === 503 || error.status === 500) errorMsg = "Groq explotó 503/500";
-        else if (error.status === 401) errorMsg = "API key de Groq mal puesta";
-        else if (error.message.includes('timeout')) errorMsg = "Timeout: Groq tardó mucho";
-        else errorMsg = `Error: ${error.message}`;
-
-        message.reply(errorMsg);
-        mandarLog(`User ${message.author.tag} causó: ${errorMsg}`);
+      console.error(error);
+      await interaction.reply({ content: 'No pude mandar mensaje weon x_x no me distes permisos papa', ephemeral: true });
     }
+  }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.on('messageCreate', message => {
+  if (message.author.bot) return;
+
+  if (message.content === '!hola') {
+    message.reply('qué onda pa 👻 shhh estoy en no molestar como mi jefe');
+  }
+
+  if (message.content === '!perreo') {
+    message.channel.send('SIUUUU *perrea en silencio pa que no lo regañe su papá* 🔥👻');
+  }
+
+  if (message.content.includes('👻')) {
+    message.react('🔥');
+    if (Math.random() < 0.3) {
+      message.channel.send('sshhh... modo sigiloso activado 👻');
+    }
+  }
+});
+
+client.login(TOKEN);
