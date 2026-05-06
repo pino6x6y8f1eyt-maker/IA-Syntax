@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ChannelType } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, ChannelType, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 require('dotenv').config();
 
 const client = new Client({
@@ -26,6 +26,31 @@ const commands = [
         .setDescription('A qué canal lo mando')
         .addChannelTypes(ChannelType.GuildText)
         .setRequired(true))
+    .toJSON(),
+
+  // COMANDO NUEVO: /anuncio
+  new SlashCommandBuilder()
+    .setName('anuncio')
+    .setDescription('Manda un anuncio oficial con embed pa 📢')
+    .addStringOption(option =>
+      option.setName('texto')
+        .setDescription('Qué dice el anuncio')
+        .setRequired(true))
+    .addChannelOption(option =>
+      option.setName('canal')
+        .setDescription('A qué canal lo mando')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(true))
+    .addStringOption(option =>
+      option.setName('mencion')
+        .setDescription('Mencionar a todos?')
+        .addChoices(
+          { name: '@everyone', value: 'everyone' },
+          { name: '@here', value: 'here' },
+          { name: 'Sin mención', value: 'none' }
+        )
+        .setRequired(false))
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) // SOLO ADMINS
     .toJSON()
 ];
 
@@ -33,12 +58,12 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 client.once('ready', async () => {
   console.log(`Bot online! Logueado como ${client.user.tag}`);
-  
+
   // REGISTRAR SLASH COMMANDS
   try {
     console.log('Registrando comandos slash...');
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-    console.log('Comando /mensaje registrado pa 👑');
+    console.log('Comandos /mensaje y /anuncio registrados pa 👑');
   } catch (error) {
     console.error('Error registrando comandos:', error);
   }
@@ -54,6 +79,7 @@ client.once('ready', async () => {
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
+  // COMANDO /mensaje
   if (interaction.commandName === 'mensaje') {
     const texto = interaction.options.getString('texto');
     const canal = interaction.options.getChannel('canal');
@@ -64,6 +90,34 @@ client.on('interactionCreate', async interaction => {
     } catch (error) {
       console.error(error);
       await interaction.reply({ content: 'No pude mandar mensaje weon x_x no me distes permisos papa', ephemeral: true });
+    }
+  }
+
+  // COMANDO /anuncio NUEVO
+  if (interaction.commandName === 'anuncio') {
+    const texto = interaction.options.getString('texto');
+    const canal = interaction.options.getChannel('canal');
+    const mencion = interaction.options.getString('mencion') || 'none';
+
+    // Embed perrón pa que se vea oficial
+    const embed = new EmbedBuilder()
+      .setTitle('📢 ANUNCIO OFICIAL DEL CLAN')
+      .setDescription(texto)
+      .setColor(0xFF0000) // Rojo sangre tryhard
+      .setFooter({ text: `Anuncio de ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
+      .setTimestamp();
+
+    let contenidoMencion = '';
+    if (mencion === 'everyone') contenidoMencion = '@everyone';
+    if (mencion === 'here') contenidoMencion = '@here';
+
+    try {
+      await canal.send({ content: contenidoMencion, embeds: [embed] });
+      await interaction.reply({ content: `Anuncio mandado a ${canal} pa 🔥`, ephemeral: true });
+      console.log(`[ANUNCIO] ${interaction.user.tag} mandó: ${texto}`);
+    } catch (error) {
+      console.error(error);
+      await interaction.reply({ content: 'No pude mandar el anuncio we x_x checa mis permisos', ephemeral: true });
     }
   }
 });
