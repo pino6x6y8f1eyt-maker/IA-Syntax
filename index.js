@@ -16,7 +16,7 @@ const CLIENT_ID = process.env.CLIENT_ID; // ← Necesitas agregar esto en Railwa
 const commands = [
   new SlashCommandBuilder()
     .setName('mensaje')
-    .setDescription('Manda un mensaje por mí pa 👑')
+    .setDescription('Manda un mensaje 👑')
     .addStringOption(option =>
       option.setName('texto')
         .setDescription('Qué quieres que diga Santix')
@@ -31,7 +31,7 @@ const commands = [
   // COMANDO NUEVO: /anuncio
   new SlashCommandBuilder()
     .setName('anuncio')
-    .setDescription('Manda un anuncio oficial con embed pa 📢')
+    .setDescription('Manda un anuncio oficial de templo mc📢')
     .addStringOption(option =>
       option.setName('texto')
         .setDescription('Qué dice el anuncio')
@@ -70,7 +70,7 @@ client.once('ready', async () => {
 
   // PONER EL PUNTO ROJO DND
   client.user.setPresence({
-    activities: [{ name: '🥰🥰 Amo a mi papa el santix 🥰🥰 no me pagan ): 💵💵', type: 0 }],
+    activities: [{ name: 'proyento fase 1', type: 0 }],
     status: 'dnd'
   });
 });
@@ -101,7 +101,7 @@ client.on('interactionCreate', async interaction => {
 
     // Embed perrón pa que se vea oficial
     const embed = new EmbedBuilder()
-      .setTitle('📢 ANUNCIO OFICIAL DEL CLAN')
+      .setTitle('📢 ANUNCIO OFICIAL DE LOS PANITAS GAMER')
       .setDescription(texto)
       .setColor(0xFF0000) // Rojo sangre tryhard
       .setFooter({ text: `Anuncio de ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
